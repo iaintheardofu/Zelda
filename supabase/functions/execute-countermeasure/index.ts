@@ -1,5 +1,10 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+
+// Resource constraints
+const MAX_EXECUTION_TIME_MS = 120000; // 2 minutes (well under 150s limit)
+const DB_TIMEOUT_MS = 5000; // 5 seconds for DB operations
+const BACKEND_TIMEOUT_MS = 10000; // 10 seconds for backend calls
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,54 +28,114 @@ interface CountermeasureResponse {
   duration_ms: number;
 }
 
+// Timeout helper for database operations
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMsg: string
+): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(errorMsg)), timeoutMs)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+// Non-blocking backend notification
+async function notifyBackend(
+  url: string,
+  payload: any,
+  timeoutMs: number
+): Promise<void> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    console.error('Backend notification failed (non-critical):', error.message);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
-    // Get request body
-    const body: CountermeasureRequest = await req.json();
-    const {
-      threat_id,
-      threat_type,
-      threat_severity,
-      countermeasure_type,
-      parameters,
-      location,
-    } = body;
+    // Enforce maximum execution time
+    const executionTimeoutId = setTimeout(() => {
+      console.error('Function approaching timeout limit');
+    }, MAX_EXECUTION_TIME_MS - 10000); // Warning 10s before limit
 
-    // Get auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
+    try {
+      // Get request body with timeout
+      const body: CountermeasureRequest = await withTimeout(
+        req.json(),
+        5000,
+        'Request body parsing timeout'
+      );
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+      const {
+        threat_id,
+        threat_type,
+        threat_severity,
+        countermeasure_type,
+        parameters,
+        location,
+      } = body;
 
-    // Get user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
+      // Validate required fields early
+      if (!threat_id || !countermeasure_type) {
+        throw new Error('Missing required fields: threat_id, countermeasure_type');
+      }
 
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
+      // Get auth header
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Missing authorization header');
+      }
 
-    console.log(`Executing countermeasure: ${countermeasure_type} for threat ${threat_id}`);
+      // Initialize Supabase client with optimized settings
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: { headers: { Authorization: authHeader } },
+          db: { schema: 'public' },
+          auth: { persistSession: false }, // Don't persist in edge function
+        }
+      );
 
-    const startTime = Date.now();
-    const actionsTaken: string[] = [];
-    let newParameters: Record<string, any> = {};
-    let success = false;
-    let message = '';
+      // Get user with timeout
+      const {
+        data: { user },
+        error: userError,
+      } = await withTimeout(
+        supabaseClient.auth.getUser(),
+        DB_TIMEOUT_MS,
+        'User authentication timeout'
+      );
+
+      if (userError || !user) {
+        throw new Error('Unauthorized');
+      }
+
+      console.log(`Executing countermeasure: ${countermeasure_type} for threat ${threat_id}`);
+
+      const actionsTaken: string[] = [];
+      let newParameters: Record<string, any> = {};
+      let success = false;
+      let message = '';
 
     // Execute countermeasure based on type
     switch (countermeasure_type) {
@@ -177,43 +242,47 @@ serve(async (req) => {
         message = `Countermeasure ${countermeasure_type} not implemented`;
     }
 
-    const durationMs = Date.now() - startTime;
+      const durationMs = Date.now() - startTime;
 
-    // Log countermeasure action to database
-    const { error: logError } = await supabaseClient
-      .from('countermeasure_actions')
-      .insert({
-        user_id: user.id,
-        threat_id,
-        countermeasure_type,
-        parameters,
-        status: success ? 'completed' : 'failed',
+      // Prepare response
+      const response: CountermeasureResponse = {
+        success,
+        message,
         actions_taken: actionsTaken,
-        result: message,
+        new_parameters: newParameters,
         duration_ms: durationMs,
-      });
+      };
 
-    if (logError) {
-      console.error('Failed to log countermeasure action:', logError);
-    }
-
-    // Prepare response
-    const response: CountermeasureResponse = {
-      success,
-      message,
-      actions_taken: actionsTaken,
-      new_parameters: newParameters,
-      duration_ms: durationMs,
-    };
-
-    // Send webhook to Python backend (if configured)
-    const pythonBackendUrl = Deno.env.get('PYTHON_BACKEND_URL');
-    if (pythonBackendUrl) {
+      // Log countermeasure action to database with timeout
       try {
-        await fetch(`${pythonBackendUrl}/countermeasure`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        await withTimeout(
+          supabaseClient
+            .from('countermeasure_actions')
+            .insert({
+              user_id: user.id,
+              threat_id,
+              countermeasure_type,
+              parameters,
+              status: success ? 'completed' : 'failed',
+              actions_taken: actionsTaken,
+              result: message,
+              duration_ms: durationMs,
+            }),
+          DB_TIMEOUT_MS,
+          'Database logging timeout'
+        );
+      } catch (logError) {
+        console.error('Failed to log countermeasure (non-critical):', logError.message);
+        // Don't fail the request if logging fails
+      }
+
+      // Send webhook to Python backend (non-blocking)
+      const pythonBackendUrl = Deno.env.get('PYTHON_BACKEND_URL');
+      if (pythonBackendUrl) {
+        // Fire and forget - don't wait for backend
+        notifyBackend(
+          `${pythonBackendUrl}/countermeasure`,
+          {
             threat_id,
             threat_type,
             threat_severity,
@@ -221,21 +290,27 @@ serve(async (req) => {
             parameters,
             location,
             response,
-          }),
+          },
+          BACKEND_TIMEOUT_MS
+        ).catch(() => {
+          // Already logged in notifyBackend
         });
-        console.log('Countermeasure sent to Python backend');
-      } catch (error) {
-        console.error('Failed to notify Python backend:', error);
-        // Don't fail the request if backend notification fails
       }
-    }
 
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+      // Clear execution timeout
+      clearTimeout(executionTimeoutId);
+
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    } finally {
+      clearTimeout(executionTimeoutId);
+    }
   } catch (error) {
     console.error('Countermeasure execution error:', error);
+
+    const durationMs = Date.now() - startTime;
 
     return new Response(
       JSON.stringify({
@@ -243,11 +318,11 @@ serve(async (req) => {
         message: error.message || 'Internal server error',
         actions_taken: [],
         new_parameters: {},
-        duration_ms: 0,
+        duration_ms: durationMs,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: error.message?.includes('timeout') || error.message?.includes('Unauthorized') ? 408 : 400,
       }
     );
   }
