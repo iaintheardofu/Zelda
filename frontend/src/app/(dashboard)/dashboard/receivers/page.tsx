@@ -9,7 +9,7 @@ import Map, { Marker, Source, Layer } from 'react-map-gl';
 import { createClient } from '@/lib/supabase/client';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface Receiver {
   id: string;
@@ -237,7 +237,7 @@ export default function ReceiversPage() {
                 <div className="text-center space-y-2">
                   <MapPin className="w-12 h-12 mx-auto text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Add MAPBOX_ACCESS_TOKEN to environment variables
+                    Add NEXT_PUBLIC_MAPBOX_TOKEN to environment variables
                   </p>
                   <p className="text-xs text-muted-foreground/70">
                     Get your token at mapbox.com
