@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nvidia-smi:*)",
+      "Bash(tar:*)",
+      "WebSearch",
+      "Bash(python3:*)",
+      "Bash(tee:*)",
+      "Bash(pkill:*)",
+      "Bash(CUDA_VISIBLE_DEVICES=\"\" python3:*)",
+      "Bash(pip install:*)",
+      "Bash(PYTHONPATH=/home/iaintheardofu/Downloads/zelda/zelda python3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

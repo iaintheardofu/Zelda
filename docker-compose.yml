@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # Zelda Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://zelda:zelda@postgres:5432/zelda
+      - REDIS_URL=redis://redis:6379/0
+      - INFLUX_URL=http://influxdb:8086
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    depends_on:
+      - postgres
+      - redis
+      - influxdb
+    restart: unless-stopped
+    command: uvicorn backend.api.app:create_app --factory --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # PostgreSQL for metadata and configuration
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=zelda
+      - POSTGRES_PASSWORD=zelda
+      - POSTGRES_DB=zelda
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # InfluxDB for time-series data
+  influxdb:
+    image: influxdb:2.7-alpine
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=zelda
+      - DOCKER_INFLUXDB_INIT_PASSWORD=zelda_password
+      - DOCKER_INFLUXDB_INIT_ORG=zelda
+      - DOCKER_INFLUXDB_INIT_BUCKET=tdoa_data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=zelda_admin_token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-worldmap-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  grafana_data:
