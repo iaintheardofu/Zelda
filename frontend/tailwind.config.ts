@@ -57,6 +57,19 @@ const config: Config = {
           spoofing: '#ff8800',
           clean: '#00ccff',
         },
+        // Cyberpunk neon colors
+        neon: {
+          cyan: 'hsl(var(--neon-cyan))',
+          pink: 'hsl(var(--neon-pink))',
+          purple: 'hsl(var(--neon-purple))',
+          green: 'hsl(var(--neon-green))',
+          orange: 'hsl(var(--neon-orange))',
+          red: 'hsl(var(--neon-red))',
+        },
+      },
+      fontFamily: {
+        orbitron: ['Orbitron', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -76,11 +89,43 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
+        'glow-pulse': {
+          '0%, 100%': {
+            opacity: '1',
+            boxShadow: '0 0 20px hsl(var(--neon-cyan) / 0.5)',
+          },
+          '50%': {
+            opacity: '0.8',
+            boxShadow: '0 0 40px hsl(var(--neon-cyan) / 0.8)',
+          },
+        },
+        'slide-in': {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'scan': {
+          '0%': { transform: 'translateY(-100%)' },
+          '100%': { transform: 'translateY(100%)' },
+        },
+        'flicker': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' },
+          '75%': { opacity: '0.9' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'pulse-rf': 'pulse-rf 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+        'slide-in': 'slide-in 0.3s ease-out',
+        'fade-in': 'fade-in 0.5s ease-out',
+        'scan': 'scan 2s linear infinite',
+        'flicker': 'flicker 3s ease-in-out infinite',
       },
     },
   },
