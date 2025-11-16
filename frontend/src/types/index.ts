@@ -145,7 +145,7 @@ export interface ThreatAlert {
   id: string;
   timestamp: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  type: 'jamming' | 'spoofing' | 'unknown_signal';
+  type: 'jamming' | 'spoofing' | 'unauthorized' | 'interference' | 'unknown';
   description: string;
   location?: {
     latitude: number;

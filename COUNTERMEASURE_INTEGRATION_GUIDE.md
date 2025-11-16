@@ -682,5 +682,3 @@ The frontend code in `CountermeasureContext.tsx` integrates seamlessly with what
 ✅ Manual override for operator control
 ✅ Complete audit trail
 ✅ Production ready
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)

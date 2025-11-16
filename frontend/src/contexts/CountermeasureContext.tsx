@@ -200,19 +200,27 @@ export function CountermeasureProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!config.enabled || !config.auto_execute) return;
 
-    threats.forEach(async (threat) => {
-      // Check if we've already processed this threat
-      const existingActions = actions.filter(a => a.threat_id === threat.id);
-      if (existingActions.length > 0) return;
+    const processThreats = async () => {
+      for (const threat of threats) {
+        // Check if we've already processed this threat
+        const existingActions = actions.filter(a => a.threat_id === threat.id);
+        if (existingActions.length > 0) continue;
 
-      // Check if auto-execute is enabled for this severity
-      const severityConfig = config.severity_thresholds[threat.severity as keyof typeof config.severity_thresholds];
-      if (!severityConfig?.auto_execute) return;
+        // Check if auto-execute is enabled for this severity
+        const severityConfig = config.severity_thresholds[threat.severity as keyof typeof config.severity_thresholds];
+        if (!severityConfig?.auto_execute) continue;
 
-      // Execute countermeasure
-      await executeCountermeasure(threat);
-    });
-  }, [threats, config, actions]);
+        // Execute countermeasure
+        try {
+          await executeCountermeasure(threat);
+        } catch (error) {
+          console.error('Auto-execute countermeasure failed:', error);
+        }
+      }
+    };
+
+    processThreats();
+  }, [threats, config, actions, executeCountermeasure]);
 
   const updateConfig = useCallback((updates: Partial<CountermeasureConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
