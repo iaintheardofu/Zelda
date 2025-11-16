@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ZeldaLogoAnimated } from '@/components/ZeldaLogo';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -54,17 +55,14 @@ export default function DashboardLayout({
         <div className="flex items-center justify-between p-6 border-b border-neon-cyan/30">
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="relative">
-              <div className="w-10 h-10 rounded-lg bg-neon-cyan/20 flex items-center justify-center glow-cyan group-hover:glow-cyan transition-all">
-                <Zap className="w-6 h-6 text-neon-cyan" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-neon-green animate-pulse" />
+              <ZeldaLogoAnimated className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,17,102,0.8)]" />
             </div>
             <div>
-              <h1 className="font-orbitron font-black text-xl text-glow-cyan tracking-wider">
+              <h1 className="font-orbitron font-black text-xl text-glow-pink tracking-wider">
                 ZELDA
               </h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                Signal Intel
+              <p className="text-[10px] text-neon-purple uppercase tracking-widest">
+                EW SYSTEM v2.0
               </p>
             </div>
           </Link>
@@ -125,22 +123,12 @@ export default function DashboardLayout({
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">System Status</span>
             <Badge variant="success" className="text-[10px]">
-              Operational
+              Online
             </Badge>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div>
-              <div className="text-neon-cyan font-bold">3</div>
-              <div className="text-muted-foreground">Active</div>
-            </div>
-            <div>
-              <div className="text-neon-green font-bold">12</div>
-              <div className="text-muted-foreground">Detected</div>
-            </div>
-            <div>
-              <div className="text-neon-red font-bold">2</div>
-              <div className="text-muted-foreground">Threats</div>
-            </div>
+          <div className="text-center text-xs py-2">
+            <div className="text-muted-foreground">Version 2.0.0</div>
+            <div className="text-neon-cyan font-orbitron text-sm mt-1">Ready</div>
           </div>
         </div>
       </aside>
