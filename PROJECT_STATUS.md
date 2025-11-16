@@ -178,7 +178,7 @@ Zelda is now a **working, demonstrable** TDOA Electronic Warfare platform. The c
 
 ### Production
 - **Docker**: Configured (docker-compose.yml)
-- **Services**: API, Frontend, PostgreSQL, Redis, InfluxDB, Grafana
+- **Services**: API, Frontend (Lovable/Vercel), PostgreSQL (Supabase), Redis (optional)
 - **Deployment**: Ready for containerized deployment
 
 ## Known Issues

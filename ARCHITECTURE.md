@@ -17,16 +17,18 @@ Zelda is a unified Time Difference of Arrival (TDOA) geolocation system that com
 ┌─────────────────────────────────────────────────────────────┐
 │                     Zelda Platform                          │
 ├─────────────────────────────────────────────────────────────┤
-│  Frontend (React + Three.js)                                │
-│  ├── 3D Map Visualization                                   │
-│  ├── Signal Spectrum Waterfall                              │
-│  ├── TDOA Hyperbola Display                                 │
-│  └── Real-Time Analytics Dashboard                          │
+│  Frontend (Next.js + React + Lovable Cloud)                 │
+│  ├── Cyberpunk Dashboard (deployed via Lovable → Vercel)   │
+│  ├── Real-Time Spectrum Waterfall (Canvas-based)            │
+│  ├── Custom Analytics Charts (SVG, no Grafana)              │
+│  ├── 3D Map Visualization (Three.js)                        │
+│  └── WebSocket Real-Time Updates                            │
 ├─────────────────────────────────────────────────────────────┤
 │  API Layer (FastAPI + WebSocket)                            │
 │  ├── REST API for configuration                             │
 │  ├── WebSocket for real-time data streaming                 │
-│  └── Control interface for SDR parameters                   │
+│  ├── Control interface for SDR parameters                   │
+│  └── CORS support for Lovable/Vercel deployment             │
 ├─────────────────────────────────────────────────────────────┤
 │  Processing Pipeline                                        │
 │  ├── Signal Acquisition (multi-threaded)                    │
@@ -56,9 +58,9 @@ Zelda is a unified Time Difference of Arrival (TDOA) geolocation system that com
 │  └── Phase Coherence Calibration                            │
 ├─────────────────────────────────────────────────────────────┤
 │  Data Layer                                                  │
-│  ├── InfluxDB (time-series metrics)                         │
-│  ├── PostgreSQL (configuration, metadata)                   │
-│  └── Redis (real-time cache)                                │
+│  ├── Supabase (PostgreSQL + Realtime + Auth + Storage)     │
+│  ├── InfluxDB (optional - time-series metrics)              │
+│  └── Redis (optional - real-time cache)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -96,22 +98,27 @@ Zelda is a unified Time Difference of Arrival (TDOA) geolocation system that com
 - **Celery**: Distributed task queue
 
 ### Data Storage
-- **InfluxDB**: Time-series data
-- **PostgreSQL**: Relational data
-- **Redis**: Caching and pub/sub
+- **Supabase**: PostgreSQL + Realtime + Auth + Storage (primary)
+- **InfluxDB**: Time-series data (optional)
+- **Redis**: Caching and pub/sub (optional)
 
 ### Frontend
-- **React**: UI framework
+- **Next.js 14**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Lovable Cloud**: Deployment platform → Vercel hosting
+- **Custom SVG/Canvas Charts**: No external chart libraries
 - **Three.js**: 3D visualization
-- **Plotly/D3.js**: Charts and graphs
 - **Mapbox GL**: Mapping
-- **TailwindCSS**: Styling
+- **TailwindCSS**: Cyberpunk theming with custom animations
 
-### DevOps
-- **Docker**: Containerization
-- **docker-compose**: Multi-container orchestration
+### DevOps & Deployment
+- **Lovable Cloud**: Frontend deployment via GitHub integration
+- **Vercel**: Auto-scaling frontend hosting
+- **Docker**: Backend containerization
+- **docker-compose**: Local development environment
 - **pytest**: Testing
 - **GitHub Actions**: CI/CD
+- **Railway/Render**: Python backend hosting options
 
 ## Key Algorithms
 
@@ -161,25 +168,36 @@ SDR Hardware → SoapySDR → Phase Calibration → I/Q Samples
 
 ## Deployment Modes
 
-### 1. Development Mode
+### 1. Development Mode (Local)
 - Single receiver simulation
 - Pre-recorded I/Q files
 - No hardware required
+- Frontend: `npm run dev` (localhost:3000)
+- Backend: `uvicorn api.app:app --reload` (localhost:8000)
 
-### 2. Lab Mode
+### 2. Lab Mode (Local Multi-SDR)
 - Multiple SDRs on same machine
 - Simulated RF environment
-- Full stack running locally
+- Full stack running locally via docker-compose
 
-### 3. Field Mode
+### 3. Production Mode (Lovable Cloud)
+- **Frontend**: Deployed to Vercel via Lovable
+- **Backend**: Railway/Render/DigitalOcean
+- **Database**: Supabase (managed PostgreSQL)
+- **Real-time**: WebSocket streaming
+- **Monitoring**: Built-in React analytics dashboard
+
+### 4. Field Mode (Distributed)
 - Distributed receivers (GPS-synchronized)
 - Network coordination
 - Cloud backend processing
+- Lovable Cloud frontend for monitoring
 
-### 4. Demo Mode
-- Web-based interface
-- Simulated emitters
-- Interactive visualization
+### 5. Demo Mode (Public)
+- Web-based interface at https://zelda.vercel.app
+- Simulated emitters and real-time data
+- Interactive cyberpunk visualization
+- No hardware required
 
 ## Performance Targets
 

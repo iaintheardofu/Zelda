@@ -929,7 +929,7 @@ Contents:
 - **Helm:** Application deployment
 
 **Monitoring & Observability:**
-- **Metrics:** Prometheus + Grafana
+- **Metrics:** Built-in React analytics dashboard with real-time charts
 - **Logs:** ELK Stack (Elasticsearch, Logstash, Kibana)
 - **Traces:** Jaeger (distributed tracing)
 - **Alerts:** PagerDuty integration
