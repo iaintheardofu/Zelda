@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket } from './useWebSocket';
 import type {
   SpectrumData,
@@ -14,7 +14,7 @@ export function useSpectrumData() {
 
   const { isConnected } = useWebSocket({
     channels: ['spectrum'],
-    onMessage: (message) => {
+    onMessage: useCallback((message) => {
       if (message.type === 'spectrum' && message.data) {
         const data: SpectrumData = {
           frequencies: message.data.frequencies,
@@ -31,7 +31,7 @@ export function useSpectrumData() {
           return updated.slice(-100);
         });
       }
-    },
+    }, []),
   });
 
   return {
@@ -47,7 +47,7 @@ export function useDetections() {
 
   const { isConnected } = useWebSocket({
     channels: ['detections'],
-    onMessage: (message) => {
+    onMessage: useCallback((message) => {
       if (message.type === 'detection' && message.data) {
         const detection: SignalDetection = {
           id: message.data.id,
@@ -64,7 +64,7 @@ export function useDetections() {
         setLatestDetection(detection);
         setDetections((prev) => [detection, ...prev].slice(0, 50)); // Keep last 50
       }
-    },
+    }, []),
   });
 
   const clearDetections = useCallback(() => {
@@ -86,7 +86,7 @@ export function useThreats() {
 
   const { isConnected } = useWebSocket({
     channels: ['threats'],
-    onMessage: (message) => {
+    onMessage: useCallback((message) => {
       if (message.type === 'threat_alert' && message.data) {
         const threat: ThreatAlert = {
           id: message.data.id,
@@ -102,7 +102,7 @@ export function useThreats() {
         setThreats((prev) => [threat, ...prev].slice(0, 100)); // Keep last 100
         setUnacknowledgedCount((prev) => prev + 1);
       }
-    },
+    }, []),
   });
 
   const acknowledgeThreat = useCallback((threatId: string) => {
@@ -131,10 +131,16 @@ export function useThreats() {
 export function useMissionUpdates(missionId?: string) {
   const [missionData, setMissionData] = useState<Mission | null>(null);
   const [activeMissions, setActiveMissions] = useState<Mission[]>([]);
+  const missionIdRef = useRef(missionId);
+
+  // Update ref when missionId changes
+  useEffect(() => {
+    missionIdRef.current = missionId;
+  }, [missionId]);
 
   const { isConnected } = useWebSocket({
     channels: ['missions'],
-    onMessage: (message) => {
+    onMessage: useCallback((message) => {
       if (message.type === 'mission_update' && message.data) {
         const mission: Partial<Mission> = {
           id: message.data.mission_id,
@@ -144,7 +150,7 @@ export function useMissionUpdates(missionId?: string) {
         };
 
         // Update specific mission if watching one
-        if (missionId && message.data.mission_id === missionId) {
+        if (missionIdRef.current && message.data.mission_id === missionIdRef.current) {
           setMissionData((prev) => ({
             ...prev!,
             ...mission,
@@ -162,7 +168,7 @@ export function useMissionUpdates(missionId?: string) {
           return prev;
         });
       }
-    },
+    }, []),
   });
 
   return {
@@ -178,7 +184,7 @@ export function useReceiverStatus() {
 
   const { isConnected } = useWebSocket({
     channels: ['receivers'],
-    onMessage: (message) => {
+    onMessage: useCallback((message) => {
       if (message.type === 'receiver_status' && message.data) {
         const receiverUpdate: Partial<Receiver> = {
           id: message.data.receiver_id,
@@ -191,22 +197,23 @@ export function useReceiverStatus() {
 
         setReceivers((prev) => {
           const index = prev.findIndex((r) => r.id === receiverUpdate.id);
-          if (index >= 0) {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], ...receiverUpdate };
-            return updated;
-          }
-          return prev;
-        });
+          let updated: Receiver[];
 
-        // Update online count
-        setReceivers((current) => {
-          const online = current.filter((r) => r.status === 'online').length;
+          if (index >= 0) {
+            updated = [...prev];
+            updated[index] = { ...updated[index], ...receiverUpdate };
+          } else {
+            updated = prev;
+          }
+
+          // Calculate online count from updated receivers
+          const online = updated.filter((r) => r.status === 'online').length;
           setOnlineCount(online);
-          return current;
+
+          return updated;
         });
       }
-    },
+    }, []),
   });
 
   return {

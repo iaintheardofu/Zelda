@@ -32,6 +32,22 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
+  // Store callbacks in refs to avoid recreating WebSocket connection
+  const onMessageRef = useRef(onMessage);
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+  const onErrorRef = useRef(onError);
+  const channelsRef = useRef(channels);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+    onErrorRef.current = onError;
+    channelsRef.current = channels;
+  }, [onMessage, onConnect, onDisconnect, onError, channels]);
+
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return; // Already connected
@@ -41,12 +57,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       const ws = new WebSocket(`${url}/ws`);
 
       ws.onopen = () => {
+        if (!mountedRef.current) return;
+
         setIsConnected(true);
         setError(null);
-        onConnect?.();
+        onConnectRef.current?.();
 
         // Subscribe to channels
-        channels.forEach((channel) => {
+        channelsRef.current.forEach((channel) => {
           ws.send(JSON.stringify({
             action: 'subscribe',
             channel,
@@ -55,23 +73,29 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
+
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           setLastMessage(message);
-          onMessage?.(message);
+          onMessageRef.current?.(message);
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err);
         }
       };
 
       ws.onerror = (event) => {
+        if (!mountedRef.current) return;
+
         setError('WebSocket error occurred');
-        onError?.(event);
+        onErrorRef.current?.(event);
       };
 
       ws.onclose = () => {
+        if (!mountedRef.current) return;
+
         setIsConnected(false);
-        onDisconnect?.();
+        onDisconnectRef.current?.();
 
         // Attempt reconnection if enabled and component still mounted
         if (reconnect && mountedRef.current) {
@@ -83,9 +107,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       wsRef.current = ws;
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to connect');
     }
-  }, [url, channels, reconnect, reconnectInterval, onConnect, onMessage, onDisconnect, onError]);
+  }, [url, reconnect, reconnectInterval]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimerRef.current) {
@@ -118,13 +143,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [send]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
 
     return () => {
       mountedRef.current = false;
       disconnect();
     };
-  }, [connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount/unmount
 
   return {
     isConnected,
