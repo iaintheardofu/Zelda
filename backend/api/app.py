@@ -244,6 +244,18 @@ def create_app() -> FastAPI:
         """Health check endpoint"""
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
+    # Include WebSocket routes
+    from .websocket_routes import router as ws_router
+    app.include_router(ws_router)
+
+    # Start background data streaming
+    @app.on_event("startup")
+    async def startup_event():
+        """Start background tasks on startup"""
+        from .websocket_manager import start_data_streaming
+        asyncio.create_task(start_data_streaming(app))
+        logger.info("Background data streaming started")
+
     return app
 
 
