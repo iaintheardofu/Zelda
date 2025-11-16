@@ -22,6 +22,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ZeldaLogoAnimated } from '@/components/ZeldaLogo';
+import { ThreatProvider } from '@/contexts/ThreatContext';
+import { CountermeasureProvider } from '@/contexts/CountermeasureContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -42,7 +44,9 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen flex">
+    <ThreatProvider>
+      <CountermeasureProvider>
+        <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside
         className={cn(
@@ -188,6 +192,8 @@ export default function DashboardLayout({
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </div>
+        </div>
+      </CountermeasureProvider>
+    </ThreatProvider>
   );
 }

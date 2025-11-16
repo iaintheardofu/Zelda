@@ -220,7 +220,7 @@ export function CountermeasureProvider({ children }: { children: React.ReactNode
     };
 
     processThreats();
-  }, [threats, config, actions, executeCountermeasure]);
+  }, [threats, config, actions]);
 
   const updateConfig = useCallback((updates: Partial<CountermeasureConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
