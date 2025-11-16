@@ -105,7 +105,7 @@ export function useThreats() {
     },
   });
 
-  const acknowledgeThre at = useCallback((threatId: string) => {
+  const acknowledgeThreat = useCallback((threatId: string) => {
     setThreats((prev) =>
       prev.map((t) =>
         t.id === threatId ? { ...t, acknowledged: true } : t

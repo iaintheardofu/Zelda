@@ -64,3 +64,6 @@ temp/
 # Environment variables
 .env
 .env.local
+
+# Claude Code local settings (personal, not shared)
+.claude/settings.local.json

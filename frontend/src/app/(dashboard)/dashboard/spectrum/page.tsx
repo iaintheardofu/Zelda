@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Play, Pause, Settings, Download, Maximize2 } from 'lucide-react';
 import { RealTimeSpectrum } from '@/components/spectrum/RealTimeSpectrum';
+import { ThreatClassifier } from '@/components/threats/ThreatClassifier';
 import { useDetections } from '@/hooks/useRealTimeData';
 import { formatFrequency, formatPower, formatRelativeTime } from '@/lib/utils';
 
@@ -39,6 +40,9 @@ export default function SpectrumPage() {
 
       {/* Real-Time Spectrum Display */}
       <RealTimeSpectrum />
+
+      {/* Threat Classifier */}
+      <ThreatClassifier maxItems={5} compact={false} />
 
       {/* Detection Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
